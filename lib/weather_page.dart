@@ -16,17 +16,15 @@ class WeatherApp extends StatefulWidget {
 
 class _WeatherAppState extends State<WeatherApp> {
   double temp = 0;
-  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    getCurrentWeather();
+    // getCurrentWeather();
   }
 
   Future getCurrentWeather() async {
     try {
-      isLoading = true;
       String cityName = 'London';
       final res = await http.get(
         Uri.parse(
@@ -38,10 +36,7 @@ class _WeatherAppState extends State<WeatherApp> {
       if (data['cod'] != '200') {
         throw 'An unexpected error occured';
       }
-      setState(() {
-        temp = data['list'][0]['main']['temp'];
-        isLoading = false;
-      });
+      return data;
     } catch (e) {
       throw e.toString();
     }
@@ -58,13 +53,25 @@ class _WeatherAppState extends State<WeatherApp> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Colors.blueGrey,
-              ),
-            )
-          : Padding(
+      body: FutureBuilder(
+          future: getCurrentWeather(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator.adaptive(),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(snapshot.error.toString()),
+              );
+            }
+
+            final data = snapshot.data!;
+            final currentTemp = data['list'][0]['main']['temp'];
+
+            return Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
@@ -87,7 +94,7 @@ class _WeatherAppState extends State<WeatherApp> {
                             child: Column(
                               children: [
                                 Text(
-                                  '$temp',
+                                  '$currentTemp K',
                                   style: const TextStyle(
                                     fontSize: 32,
                                     fontWeight: FontWeight.bold,
@@ -200,7 +207,8 @@ class _WeatherAppState extends State<WeatherApp> {
                   ),
                 ],
               ),
-            ),
+            );
+          }),
     );
   }
 }
